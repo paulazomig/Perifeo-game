@@ -10,8 +10,6 @@ class Game:
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption('Perifero')
 
-    #bg = pygame.image.load("images/tabuleiro.png")
-
     # esse array tem as coordenadas do centro de cada hexagono no tabuleiro
         self.board = [ [(x0, y0),      (x0+dx, y0-dy),      (x0+2*dx, y0),      (x0+3*dx, y0-dy),      (x0+4*dx, y0)],
                      [(x0, y0+2*dy), (x0+dx, y0-dy+2*dy), (x0+2*dx, y0+2*dy), (x0+3*dx, y0-dy+2*dy), (x0+4*dx, y0+2*dy)],
