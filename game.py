@@ -1,7 +1,5 @@
 import pygame
 import math
-
-#from pygame import mouse
 from constants import *
 from piece import *
 
