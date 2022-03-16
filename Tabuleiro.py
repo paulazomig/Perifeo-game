@@ -181,7 +181,7 @@ class Tabuleiro:
 
             # desenha pecas no tabuleiro
             for p in self.pecas:            
-                pygame.draw.circle(self.tela, p.color, p.coord, p.radius)
+                pygame.draw.circle(self.tela, p.cor, p.coord, p.radius)
 
             pygame.display.update()
 
