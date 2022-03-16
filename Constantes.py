@@ -12,9 +12,9 @@ ROWS, COLS = 5, 5
 NUM_HEXAGONS = ROWS * COLS
 
 # RGB
-YELLOW = (237, 231, 24)
+YELLOW = (237, 231, 24) # AMARELO: cor 0 (== 0 --False)
 BLUE = (0, 0, 255)
-BLACK = (0,0,0)
+BLACK = (0,0,0) #cor 1 (!= 0 -- True)
 WHITE = (255, 255, 255)
 
 # Raio clicavel de cada casa do tabuleiro

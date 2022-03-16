@@ -1,4 +1,4 @@
-class Piece:
+class Peca:
 
     def __init__(self, color, coord):
         self.color = color
