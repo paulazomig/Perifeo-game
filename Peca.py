@@ -7,5 +7,8 @@ class Peca:
         # radius of a drawn piece on the board
         self.radius = 40
 
+    def setCoord(self, coord):
+        self.coord = coord
+
     def __str__(self):
         return str(self.cor) + ' ' + str(self.coord)
