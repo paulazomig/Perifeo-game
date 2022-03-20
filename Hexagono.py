@@ -27,9 +27,6 @@ class Hexagono:
 
 # ----------- Métodos Hexágono --------------
 
-    def colocarPeca(self, jogador, direcao):
-        pass
-
     def verificaOcupado(self):
         if self.peca != None:
             return True #está ocupado
