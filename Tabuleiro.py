@@ -35,7 +35,14 @@ class Tabuleiro:
         # setado para False quando o jogo é vencido.
         self.partidaEmAndamento = True
 
+        # variáveis que armazenam o hexágono que foi clicado
+        self.prim_hexagono = None
+        self.sec_hexagono = None
 
+        # variáveis que armazenam quais peças tem que ser movidas durante
+        # uma inserção na borda e para qual posição
+        self.pecas_p_empurrar = []
+        self.pos_p_empurrar = []
 
 #--------------- MÉTODOS AUXILIARES ----------------
 
@@ -56,11 +63,17 @@ class Tabuleiro:
         elif flagSom == 'vitoria':
             pass
     
-    def getHexagonosBordaSuperior(self):
-        return self.matrizHexagonos[0]
+    def getHexagonosBorda(self, borda):
+        if borda == 'superior':
+            return self.matrizHexagonos[0]
+        else:
+            return [ linha[0] for linha in self.matrizHexagonos ]
 
-    def getHexagonosBordaEsquerda(self):
-        return [ linha[0] for linha in self.matrizHexagonos ]
+    # def getHexagonosBordaSuperior(self):
+    #     return self.matrizHexagonos[0]
+
+    # def getHexagonosBordaEsquerda(self):
+    #     return [ linha[0] for linha in self.matrizHexagonos ]
 
     def criarJogador(self):
         jogador1 = Jogador("AMARELO", 0, False)
@@ -118,211 +131,134 @@ class Tabuleiro:
 
     # analista de o jogador esta tentando empurrar as peças em uma direção válida
     # unicos casos eliminados do tabuleiro são nas casas: (0,2), (4,1), (4,3)
-    def analisaDirecaoValida(self, prim_hexagono, sec_hexagono):
-        if prim_hexagono.getPosicao() == (0,2) or prim_hexagono.getPosicao() == (4,1) or prim_hexagono.getPosicao() == (4,3):
-            if prim_hexagono.getPosicao()[1] != sec_hexagono.getPosicao()[1]:
-                print('Direção inválida! Exceção da casa {}'.format(prim_hexagono.getPosicao()))
+    def analisaDirecaoValida(self):
+        prim = self.prim_hexagono
+        sec = self.sec_hexagono
+        if prim.getPosicao() == (0,2) or prim.getPosicao() == (4,1) or prim.getPosicao() == (4,3):
+            if prim.getPosicao()[1] != sec.getPosicao()[1]:
+                print('Direção inválida! Exceção da casa {}'.format(prim.getPosicao()))
                 return False
         return True
 
+    def armazenaPecaParaEmpurrar(self, hexagono):
+        if hexagono.verificaOcupado():
+            self.pecas_p_empurrar.append(hexagono.getPeca())
+            self.pos_p_empurrar.append(hexagono.getPosicao())
+        else:
+            # precisa adicionar a próxima posição que está vazia no tabuleiro
+            # pois é pra ela que a última peça da fila será movida
+            self.pos_p_empurrar.append(hexagono.getPosicao())
+
+    def verificaDirecaoCheia(self, comprimento, tipo, direcao):
+        if len(self.pecas_p_empurrar) == comprimento:
+            mixer.music.load('sounds/bad-beep-incorrect.mp3')
+            mixer.music.play()
+            print('{} p/ {} está cheia. Não é possível adicionar peças'.format(tipo, direcao))
+            return True
+
+    def verificaPosicao(self, r, c):
+        if r >= 0 and r < ROWS and c >= 0 and c < COLS:
+            return True
+
     # analisa se tem espaco pra empurrar (ou seja, se  nrnhuma peca vai ser empurrada para fora do tabuleiro)
     # e chama a função de empurrar
-    def analisaEmpurraPecas(self, prim_hexagono, sec_hexagono):
-        lin1 = prim_hexagono.getPosicao()[0]
-        col1 = prim_hexagono.getPosicao()[1]
+    def analisaEmpurraPecas(self):
 
-        lin2 = sec_hexagono.getPosicao()[0]
-        col2 = sec_hexagono.getPosicao()[1]
+        lin1, col1 = self.prim_hexagono.getPosicao()
+        lin2, col2 = self.sec_hexagono.getPosicao()
         
-        pecas_p_empurrar = list()
-        pos_p_empurrar = list()
+        self.pecas_p_empurrar = []
+        self.pos_p_empurrar = []
 
         # analisa se é possível adicionar peca numa coluna (vertical)
         if col1 == col2:
-            cont = 0
             for i in range(ROWS):
                 if lin1 < lin2:
                     hexagono = self.matrizHexagonos[lin1+i][col1]
                 else:
                     hexagono = self.matrizHexagonos[lin1-i][col1]
                 
-                if hexagono.verificaOcupado():
-                    pecas_p_empurrar.append(hexagono.getPeca())
-                    pos_p_empurrar.append(hexagono.getPosicao())
-                else:
-                    # precisa adicionar a próxima posição que está vazia no tabuleiro
-                    # pois é pra ela que a última peça da fila será movida
-                    pos_p_empurrar.append(hexagono.getPosicao())
+                self.armazenaPecaParaEmpurrar(hexagono)
+                if not hexagono.verificaOcupado():
                     break
             
-            if len(pecas_p_empurrar) == ROWS:
-                mixer.music.load('sounds/bad-beep-incorrect.mp3')
-                mixer.music.play()
-                print('Coluna {} está cheia. Não é possível adicionar peças'.format(col1))
+            direcao = 'Baixo' if lin2 > lin1 else 'Cima'
+            if self.verificaDirecaoCheia(ROWS, 'Coluna', direcao):
                 return False
 
         # existem duas exceções à essa regra: (0, 1) e (0, 3)
         # nesses casos a diagonal vai para baixo. em todas as outras casas ela vai para cima
         elif lin1 == lin2 and (col1 != 1 and col1 != 3):
-            cont_hexagonos_diagonal = 0 # variável para contar quantas casas existem em uma diagonal
+            cont = 0 # variável para contar quantas casas existem em uma diagonal
             r = lin1
             for j in range(COLS):
-                if col1 < col2:
-                    c = col1 + j
-
-                    # nas colunas de índice ímpar é precise decrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if j % 2 == 0 and j > 0:
-                        r -= 1
+                c = col1 + j if col1 < col2 else col1 - j
+                if j % 2 == 0 and j > 0: # nas colunas de índice ímpar é precise decrementar 1 da linha para
+                    r -= 1               # continuar andando na diagonal para cima
                     
-                    if c < COLS and r >= 0:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a direita')
-                        break
+                if self.verificaPosicao(r, c):
+                    hexagono = self.matrizHexagonos[r][c]
+                    cont += 1
                 else:
-                    c = col1 - j
+                    break
 
-                    # nas colunas de índice ímpar é precise decrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if j % 2 == 0 and j > 0:
-                        r -= 1
-                    
-                    if r >= 0 and c >=0:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a esquerda')
-                        break
-
-                if hexagono.verificaOcupado():
-                    pecas_p_empurrar.append(hexagono.getPeca())
-                    pos_p_empurrar.append(hexagono.getPosicao())
-                else:
-                    # precisa adicionar a próxima posição que está vazia no tabuleiro
-                    # pois é pra ela que a última peça da fila será movida
-                    pos_p_empurrar.append(hexagono.getPosicao())
+                self.armazenaPecaParaEmpurrar(hexagono)
+                if not hexagono.verificaOcupado():
                     break
             
-            # transformar em um método estilo: verificaDiagonalCheia()
-            # poderia criar um método contaHexagonosNaDiagonal() que roda previamente ao loop
-            if len(pecas_p_empurrar) == cont_hexagonos_diagonal:
-                mixer.music.load('sounds/bad-beep-incorrect.mp3')
-                mixer.music.play()
-                print('Diagonal p/ cima a partir de ({},{}) está cheia. Não é possível adicionar peças'.format(lin1, col1))
+            if self.verificaDirecaoCheia(cont, 'Diagonal', 'Cima'):
                 return False
 
         elif lin1 != lin2:
-            cont_hexagonos_diagonal = 0 # variável para contar quantas casas existem em uma diagonal
+            cont = 0
             r = lin1
             for j in range(COLS):
-                if col1 < col2:
-                    c = col1 + j
+                c = col1 + j if col1 < col2 else col1 - j
+                if j % 2 == 1:
+                    r += 1
 
-                    # nas colunas de índice ímpar é precise incrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if j % 2 == 1:
-                        r += 1
-                    
-                    if c < COLS and r < ROWS:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a direita')
-                        break
+                if self.verificaPosicao(r, c):
+                    hexagono = self.matrizHexagonos[r][c]
+                    cont += 1
                 else:
-                    c = col1 - j
+                    break
 
-                    # nas colunas de índice ímpar é precise incrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if j % 2 == 1:
-                        r += 1
-                    
-                    if r < ROWS and c >= 0:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a esquerda')
-                        break
-
-                if hexagono.verificaOcupado():
-                    pecas_p_empurrar.append(hexagono.getPeca())
-                    pos_p_empurrar.append(hexagono.getPosicao())
-                else:
-                    # precisa adicionar a próxima posição que está vazia no tabuleiro
-                    # pois é pra ela que a última peça da fila será movida
-                    pos_p_empurrar.append(hexagono.getPosicao())
+                self.armazenaPecaParaEmpurrar(hexagono)
+                if not hexagono.verificaOcupado():
                     break
             
-            # transformar em um método estilo: verificaDiagonalCheia()
-            # poderia criar um método contaHexagonosNaDiagonal() que roda previamente ao loop
-            if len(pecas_p_empurrar) == cont_hexagonos_diagonal:
-                mixer.music.load('sounds/bad-beep-incorrect.mp3')
-                mixer.music.play()
-                print('Diagonal p/ baixo a partir de ({},{}) está cheia. Não é possível adicionar peças'.format(lin1, col1))
+            if self.verificaDirecaoCheia(cont, 'Diagonal', 'Baixo'):
                 return False
             
-        else:
-            # printar quais situações estão entrando aqui
-            # deveria ser apenas as excessões (0, 1) e (0, 3)
-            print('Peça processada: ({}, {})'.format(lin1, col1))
-
-            cont_hexagonos_diagonal = 0 # variável para contar quantas casas existem em uma diagonal
+        else: # excessões (0, 1) e (0, 3)
+            cont = 0
             r = lin1
             for j in range(COLS):
-                if col1 < col2:
-                    c = col1 + j
-
-                    # nas colunas de índice ímpar é precise incrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if c % 2 == 1 and c != col1:
-                        r += 1
+                c = col1 + j if col1 < col2 else col1 - j
+                if c % 2 == 1 and c != col1:
+                    r += 1
                     
-                    if c < COLS and r < ROWS:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a direita')
-                        break
+                if self.verificaPosicao(r, c):
+                    hexagono = self.matrizHexagonos[r][c]
+                    cont += 1
                 else:
-                    c = col1 - j
+                    break
 
-                    # nas colunas de índice ímpar é precise incrementar 1 da linha para
-                    # continuar andando na diagonal para cima
-                    if c % 2 == 1 and c != col1:
-                        r += 1
-                    
-                    if r < ROWS and c >= 0:
-                        hexagono = self.matrizHexagonos[r][c]
-                        cont_hexagonos_diagonal += 1
-                    else:
-                        print('Saiu do tabuleiro andando para a esquerda')
-                        break
-
-                if hexagono.verificaOcupado():
-                    pecas_p_empurrar.append(hexagono.getPeca())
-                    pos_p_empurrar.append(hexagono.getPosicao())
-                else:
-                    # precisa adicionar a próxima posição que está vazia no tabuleiro
-                    # pois é pra ela que a última peça da fila será movida
-                    pos_p_empurrar.append(hexagono.getPosicao())
+                self.armazenaPecaParaEmpurrar(hexagono)
+                if not hexagono.verificaOcupado():
                     break
             
-            # transformar em um método estilo: verificaDiagonalCheia()
-            # poderia criar um método contaHexagonosNaDiagonal() que roda previamente ao loop
-            if len(pecas_p_empurrar) == cont_hexagonos_diagonal:
-                print('Diagonal p/ baixo a partir de ({},{}) está cheia. Não é possível adicionar peças'.format(lin1, col1))
-                mixer.music.load('sounds/bad-beep-incorrect.mp3')
-                mixer.music.play()
+            if self.verificaDirecaoCheia(cont, 'Diagonal', 'Baixo'):
                 return False
-
-        self.empurraPecas(pecas_p_empurrar, pos_p_empurrar)
-
+                
         return True
 
     # funcao recebe lista de peças e de posições analisadas em analisaEmpurraPecas() e empurra naquela direção
-    def empurraPecas(self, pecas, pos):
+    def empurraPecas(self):
+
+        pecas = self.pecas_p_empurrar
+        pos = self.pos_p_empurrar
+
         #zera o primeiro hexagono do vetor de peças, para posteriormente receber a nova peça
         self.matrizHexagonos[pos[0][0]][pos[0][1]].setPeca(None)
         for i in range(len(pecas)):
@@ -334,110 +270,91 @@ class Tabuleiro:
 
     def buscaProfundidade(self, tabuleiro, hexagono, cor):
         l, c = hexagono.getPosicao()
+        # seta posicão na matriz de controle como ocupada
         if tabuleiro[l][c] == False:
             tabuleiro[l][c] = True
+            # verifica se os hexágonos tem vizinhos e se são da cor desejada
             for v in hexagono.getVizinhos():
-                # print('{} é vizinho de ({}, {})'.format(v, l, c))
                 vizinho = self.getHexagonoRef(v)
                 if vizinho.verificaOcupado():
-                    # print('{} está ocupado'.format(v))
                     if vizinho.getPeca().getCor() == cor:
-                        # print('chamou recursao em {}'.format(vizinho.getPosicao()))
                         if vizinho.verificaBorda(cor):
-                            # print('sucesso, acabou em {}'.format(vizinho.getPosicao()))
                             self.vitoria = True
                             return
                         else:
                             self.buscaProfundidade(tabuleiro, vizinho, cor)
                             if self.vitoria:
                                 return
-
-    # def buscaProfundidadeAmarelo(self, tabuleiro, hexagono):
-    #     l, c = hexagono.getPosicao()
-    #     if tabuleiro[l][c] == False:
-    #         tabuleiro[l][c] = True
-    #         for v in hexagono.getVizinhos():
-    #             # print('{} é vizinho de ({}, {})'.format(v, l, c))
-    #             vizinho = self.getHexagonoRef(v)
-    #             if vizinho.verificaOcupado():
-    #                 # print('{} está ocupado'.format(v))
-    #                 if vizinho.getPeca().getCor() == YELLOW:
-    #                     # print('chamou recursao em {}'.format(vizinho.getPosicao()))
-    #                     if vizinho.verificaBordaInferior():
-    #                         # print('sucesso, acabou em {}'.format(vizinho.getPosicao()))
-    #                         self.vitoria = True
-    #                         return
-    #                     else:
-    #                         self.buscaProfundidadeAmarelo(tabuleiro, vizinho)
-    #                         if self.vitoria:
-    #                             return
-
-    # def buscaProfundidadePreto(self, tabuleiro, hexagono):
-    #     l, c = hexagono.getPosicao()
-    #     if tabuleiro[l][c] == False:
-    #         tabuleiro[l][c] = True
-    #         for v in hexagono.getVizinhos():
-    #             # print('{} é vizinho de ({}, {})'.format(v, l, c))
-    #             vizinho = self.getHexagonoRef(v)
-    #             if vizinho.verificaOcupado():
-    #                 # print('{} está ocupado'.format(v))
-    #                 if vizinho.getPeca().getCor() == BLACK:
-    #                     # print('chamou recursao em {}'.format(vizinho.getPosicao()))
-    #                     if vizinho.verificaBordaDireita():
-    #                         # print('sucesso, acabou em {}'.format(vizinho.getPosicao()))
-    #                         self.vitoria = True
-    #                         return
-    #                     else:
-    #                         self.buscaProfundidadePreto(tabuleiro, vizinho)
-    #                         if self.vitoria:
-    #                             return
                         
+    
     def verificaCondicaoDeVitoria(self):
-
         self.vitoria = False
-        for h in self.getHexagonosBordaSuperior():
-            if h.verificaOcupado() and h.getPeca().getCor() == YELLOW:
-                
-                # inicializa matriz do tabuleiro com nenhuma casa visitada
-                tabuleiro = [
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ]
-                ]
+        testes = [ (YELLOW, 'superior'), (BLACK, 'esquerda') ]
 
-                # roda busca em profundidade no grafo do jogo para tentar chegar até a outra borda
-                self.vitoria = False
-                self.buscaProfundidade(tabuleiro, h, YELLOW)
+        for cor, borda in testes:
+            for h in self.getHexagonosBorda(borda):
+                if h.verificaOcupado() and h.getPeca().getCor() == cor:
                     
-                if self.vitoria:
-                    print('AMARELO VENCEU')
-                    break
+                    # inicializa matriz de casas visitada no tabuleiro
+                    # a ser preenchida durante a busca em profundidade
+                    tabuleiro = [
+                        [ False, False, False, False, False ],
+                        [ False, False, False, False, False ],
+                        [ False, False, False, False, False ],
+                        [ False, False, False, False, False ],
+                        [ False, False, False, False, False ]
+                    ]
 
-        for h in self.getHexagonosBordaEsquerda():
-            if h.verificaOcupado() and h.getPeca().getCor() == BLACK:
+                    # roda busca em profundidade no grafo do jogo para tentar chegar até a outra borda
+                    self.vitoria = False
+                    self.buscaProfundidade(tabuleiro, h, cor)
+                        
+                    if self.vitoria:
+                        self.partidaEmAndamento = False
+                        print(cor, 'VENCEU')
+                        break
 
-                # inicializa matriz do tabuleiro com nenhuma casa visitada
-                tabuleiro = [
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ],
-                    [ False, False, False, False, False ]
-                ]
+    def processaPrimeiroClique(self, hexagono):
+        if hexagono.analisaBorda(): # perde o click se o hexagono clicado nao estiver na borda
+            sucesso = self.inserirPeca(hexagono)
+            self.verificaCondicaoDeVitoria()
+            if not sucesso:
+                # armazena primeiro hexagono clicado e aguarda segundo click
+                self.prim_hexagono = hexagono
+            else:
+                self.tocaSom('jogadaExecutada')
+        else:
+            self.tocaSom('erro')
 
-                # roda busca em profundidade no grafo do jogo para tentar chegar até a outra borda
-                self.vitoria = False
-                self.buscaProfundidade(tabuleiro, h, BLACK)
-                    
-                if self.vitoria:
-                    print('PRETO VENCEU')
-                    break
+    def processaSegundoClique(self, hexagono):
+        # checar se o segundo hexagono esta na vizinhança imediata do primeiro                            
+        # isto configura um segundo click válido
+        # perde o click se o hexagono do segundo click nao for vizinho do primeiro
+        if self.prim_hexagono.analisaEntorno(hexagono):
+            self.sec_hexagono = hexagono
+            # ver se a diagonal escolhida é válida
+            if self.analisaDirecaoValida():
+                # checar se a vertical/diagonal esta cheia p/ poder empurrar as peças
+                if self.analisaEmpurraPecas():
+                    self.empurraPecas()
+                    self.inserirPeca(self.prim_hexagono)
+                    self.tocaSom('jogadaExecutada')
+                    self.verificaCondicaoDeVitoria()
+            else:
+                self.tocaSom('erro')
+        else:
+            self.tocaSom('erro')
 
-        return self.vitoria
+        # limpa hexagonos clicados após processar o segundo clique
+        self.prim_hexagono = None
+        self.sec_hexagono = None
 
-
+    def desenhaPecasTabuleiro(self):
+        for i in range(ROWS):
+            for j in range(COLS):
+                p = self.matrizHexagonos[i][j].getPeca()
+                if p:    
+                    pygame.draw.circle(self.tela, p.cor, p.coord, p.radius)
 
 #--------------- MÉTODOS SISTEMA ----------------
 
@@ -457,9 +374,6 @@ class Tabuleiro:
         self.desenharTabuleiro()
         self.criarJogador()
 
-        prim_hexagono = None
-        sec_hexagono = None
-
         # Partida em andamento
         while self.partidaEmAndamento:
             clock.tick(FPS)
@@ -469,50 +383,18 @@ class Tabuleiro:
                     self.partidaEmAndamento = False
                 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    
                     mouse_coord = pygame.mouse.get_pos()
                     hexagono = self.retornaHexagonoClicado(mouse_coord)
-
                     if hexagono != None:
-                        if prim_hexagono == None: # primeiro click no tabuleiro
-                            if hexagono.analisaBorda(): # perde o click se o hexagono clicado nao estiver na borda
-                                sucesso = self.inserirPeca(hexagono)
-                                resultado = self.verificaCondicaoDeVitoria()
-                                if not sucesso:
-                                    # armazena primeiro hexagono clicado e aguarda segundo click
-                                    prim_hexagono = hexagono
-                                else:
-                                    self.tocaSom('jogadaExecutada')
-                            else:
-                                self.tocaSom('erro')
-                        else: # segundo click no tabuleiro                            
-                            # checar se o segundo hexagono esta na vizinhança imediata do primeiro                            
-                            # isto configura um segundo click válido
-                            # perde o click se o hexagono do segundo click nao for vizinho do primeiro
-                            if prim_hexagono.analisaEntorno(hexagono):
-                                sec_hexagono = hexagono
-                                # ver se a diagonal escolhida é válida
-                                if self.analisaDirecaoValida(prim_hexagono, sec_hexagono):
-                                    # checar se a vertical/diagonal esta cheia p/ poder empurrar as peças
-                                    if self.analisaEmpurraPecas(prim_hexagono, sec_hexagono):
-                                        self.inserirPeca(prim_hexagono)
-                                        self.tocaSom('jogadaExecutada')
-                                        resultado = self.verificaCondicaoDeVitoria()
-                                else:
-                                    self.tocaSom('erro')
-
-                            prim_hexagono = None
-                            sec_hexagono = None
+                        if self.prim_hexagono == None:
+                            self.processaPrimeiroClique(hexagono)
+                        else:                            
+                            self.processaSegundoClique(hexagono)                            
                     else:
-                        prim_hexagono = None
-                        sec_hexagono = None
+                        self.prim_hexagono = None
+                        self.sec_hexagono = None
 
-            # desenha pecas no tabuleiro
-            for i in range(ROWS):
-                for j in range(COLS):
-                    p = self.matrizHexagonos[i][j].getPeca()
-                    if p:    
-                        pygame.draw.circle(self.tela, p.cor, p.coord, p.radius)
+            self.desenhaPecasTabuleiro()
 
             pygame.display.update()
 
