@@ -163,11 +163,11 @@ class Tabuleiro:
 
     def verificaDirecaoCheia(self, comprimento, tipo, direcao):
         if len(self.pecas_p_empurrar) == comprimento:
-            mixer.music.load('sounds/bad-beep-incorrect.mp3')
-            mixer.music.play()
+            self.tocaSom('erro')
             print('{} p/ {} está cheia. Não é possível adicionar peças'.format(tipo, direcao))
             return True
 
+    # garante que posição está dentro dos limites do tabuleiro
     def verificaPosicao(self, r, c):
         if r >= 0 and r < ROWS and c >= 0 and c < COLS:
             return True
@@ -324,7 +324,6 @@ class Tabuleiro:
                             self.vencedor = "Amarelo"
                         else:
                             self.vencedor = "Preto"
-                        self.tocaSom('vitoria')
                         break
 
     def processaPrimeiroClique(self, hexagono):
@@ -406,7 +405,8 @@ class Tabuleiro:
 
     def encerrarSistema(self):
         if self.vencedor:
-            self.escreveTela("Jogador {} Venceu o Jogo!".format(self.vencedor))
+            self.tocaSom('vitoria')
+            self.escreveTela("Jogador {} venceu o jogo!".format(self.vencedor))
         else:
             self.escreveTela("  Jogo finalizado. Até a próxima!")
         pygame.display.update()
