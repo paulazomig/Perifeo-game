@@ -150,6 +150,9 @@ class Tabuleiro:
             if prim.getPosicao()[1] != sec.getPosicao()[1]:
                 print('Direção inválida! Exceção da casa {}'.format(prim.getPosicao()))
                 return False
+        if prim.getPosicao()[1] == sec.getPosicao()[1] and prim.getPosicao()[0] != 0 and prim.getPosicao()[0] != ROWS-1:
+            print('Direção inválida! Exceção na casa {}'.format(prim.getPosicao()))
+            return False
         return True
 
     def armazenaPecaParaEmpurrar(self, hexagono):
@@ -400,7 +403,7 @@ class Tabuleiro:
             self.desenhaPecasTabuleiro()
 
             pygame.display.update()
-
+        
         self.encerrarSistema()
 
     def encerrarSistema(self):
