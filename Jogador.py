@@ -3,17 +3,17 @@ from xmlrpc.client import boolean
 
 class Jogador:
 
-    def __init__(self, nome, cor=int, turno=boolean):
+    def __init__(self, nome, flagCor=int, turno=boolean):
         self.nome = nome
-        self.cor = cor
+        self.flagCor = flagCor
         self.turno = turno
 
     # --------- Getters e Setters --------------
     def getNome(self):
         return self.nome
       
-    def getCor(self):
-        return self.cor
+    def getFlagCor(self):
+        return self.flagCor
     
     def getTurno(self):
         return self.turno
@@ -21,8 +21,8 @@ class Jogador:
     def setNome(self, nome):
         self.nome = nome
 
-    def setCor(self, cor):
-        self.cor = cor
+    def setFlagCor(self, flagCor):
+        self.flagCor = flagCor
 
     def setTurno(self, turno):
         self.turno = turno
@@ -34,8 +34,4 @@ class Jogador:
 
     def identificaJogador(self):
         pass
-
-    def notificaJogador(self):
-        pass
-
     

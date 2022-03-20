@@ -43,6 +43,26 @@ class Hexagono:
             return True
         return False
 
+    def verificaBorda(self, cor):
+        if cor == YELLOW:
+            if self.posicao[0] == ROWS-1:
+                return True
+            return False
+        else:
+            if self.posicao[1] == COLS-1:
+                return True
+            return False
+
+    # def verificaBordaInferior(self):
+    #     if self.posicao[0] == ROWS-1:
+    #         return True
+    #     return False
+
+    # def verificaBordaDireita(self):
+    #     if self.posicao[1] == COLS-1:
+    #         return True
+    #     return False
+
     # recebe um hexagoono e checa se ele esta na vizinhança imediata do tabuleiro
     def analisaEntorno(self, vizinho):
         # tratamento de excessoes do tabuleiro (vizinhança de hexagono)
@@ -61,6 +81,32 @@ class Hexagono:
         if (vizinho.posicao[0] == self.posicao[0]+a) and (vizinho.posicao[1] == self.posicao[1]-1):
             return True
         return False
+
+    def getVizinhos(self):
+        vizinhos = []
+        l, c = self.posicao
+
+        if l+1 < ROWS:
+            vizinhos.append((l+1, c))
+        if l-1 >= 0:
+            vizinhos.append((l-1, c))
+        if c+1 < COLS:
+            vizinhos.append((l, c+1))
+        if c-1 >= 0:
+            vizinhos.append((l, c-1))
+
+        if c % 2 == 0: # coluna par, vizinho na diagonal inferior
+            if l+1 < ROWS and c+1 < COLS:
+                vizinhos.append((l+1, c+1))
+            if l+1 < ROWS and c-1 >= 0:
+                vizinhos.append((l+1, c-1))
+        else: # coluna impar, vizinho na diagonal superior
+            if l-1 >= 0 and c+1 < COLS:
+                vizinhos.append((l-1, c+1))
+            if l-1 >= 0 and c-1 >= 0:
+                vizinhos.append((l-1, c-1))
+
+        return vizinhos
 
     def empurrarPecaDirecao(self, direcao):
         pass
