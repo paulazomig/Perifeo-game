@@ -14,6 +14,7 @@ class Tabuleiro:
     def __init__(self):
         
         pygame.init()
+        pygame.font.init()
         self.logo = pygame.image.load("images/logo.png")
         self.tabuleiro = pygame.image.load("images/tabuleiro.png")
         self.tela = pygame.display.set_mode((WIDTH, HEIGHT))
@@ -32,6 +33,9 @@ class Tabuleiro:
         # Lista dos jogadores (preto ou amarelo) contendo nome, número da cor (0 = amarelo, 1 = preto) e turno
         self.jogadores = list()
 
+        # indica o vencedor do jogo
+        self.vencedor = None
+
         # setado para False quando o jogo é vencido.
         self.partidaEmAndamento = True
 
@@ -46,10 +50,10 @@ class Tabuleiro:
 
 #--------------- MÉTODOS AUXILIARES ----------------
 
+#   Métodos Interface/Interação com Jogador:
     def desenharTabuleiro(self):
         self.tela.fill(WHITE)
         self.tela.blit(self.tabuleiro, (0, 0))
-
 
     def tocaSom(self, flagSom):
         if flagSom == 'jogadaExecutada':
@@ -61,19 +65,29 @@ class Tabuleiro:
             mixer.music.play()
 
         elif flagSom == 'vitoria':
-            pass
+            mixer.music.load('sounds/success.mp3')
+            mixer.music.play()
     
+    def escreveTela(self, mensagem):
+        pygame.draw.rect(self.tela, WHITE, pygame.Rect(0,0, WIDTH, HEIGHT))
+        myfont = pygame.font.SysFont(None, 45)
+        textsurface = myfont.render(mensagem, False, (0, 0, 0))
+        self.tela.blit(self.logo, (10, 100))
+        self.tela.blit(textsurface,(50,300))
+
+    def desenhaPecasTabuleiro(self):
+        for i in range(ROWS):
+            for j in range(COLS):
+                p = self.matrizHexagonos[i][j].getPeca()
+                if p:    
+                    pygame.draw.circle(self.tela, p.cor, p.coord, p.radius)
+
+#   Métodos Lógica de Jogo:    
     def getHexagonosBorda(self, borda):
         if borda == 'superior':
             return self.matrizHexagonos[0]
         else:
             return [ linha[0] for linha in self.matrizHexagonos ]
-
-    # def getHexagonosBordaSuperior(self):
-    #     return self.matrizHexagonos[0]
-
-    # def getHexagonosBordaEsquerda(self):
-    #     return [ linha[0] for linha in self.matrizHexagonos ]
 
     def criarJogador(self):
         jogador1 = Jogador("AMARELO", 0, False)
@@ -93,26 +107,24 @@ class Tabuleiro:
             else:
                 i.setTurno(True)
 
-    # criacao de pecas com alternancia de cores
-    def criarPeca(self, flagCor, coord):
+    def criarPeca(self, flagCor, coord): # criacao de pecas com alternancia de cores
         if flagCor == 0:
             peca = Peca(YELLOW, coord)
         else:
             peca = Peca(BLACK, coord)
         return peca
 
-    # caso seja um hexágono válida e que não esteja ocupado, insere peça. Caso esteja ocupada, chama self.empurrarPeca()
+    # caso seja um hexágono válido e que não esteja ocupado, insere peça. Caso esteja ocupada, chama self.empurrarPeca()
     def inserirPeca(self, hexagono):
         coord = hexagono.getCoord()
         jogadorTurno = self.verificaTurnoJogador()
         novaPeca = self.criarPeca((1 - jogadorTurno.getFlagCor()), coord) # cria uma peça da cor oposta do jogador
         if not hexagono.verificaOcupado():
             hexagono.setPeca(novaPeca)
-            self.inverterTurno() # seta o turno do jogador atual para False e do outro jogador para True
+            self.inverterTurno()
             return True
         return False
 
-    # funcao que retorna hexagono que foi clicado
     def retornaHexagonoClicado(self, mouse_coord):
         hexagonoClicado = None
         for i in range(ROWS):
@@ -129,8 +141,8 @@ class Tabuleiro:
     def getHexagonoRef(self, pos):
         return self.matrizHexagonos[pos[0]][pos[1]]
 
-    # analista de o jogador esta tentando empurrar as peças em uma direção válida
-    # unicos casos eliminados do tabuleiro são nas casas: (0,2), (4,1), (4,3)
+    # analista se o jogador esta tentando empurrar as peças em uma direção válida
+    # unicos casos de direcao não válida do tabuleiro são nas casas: (0,2), (4,1), (4,3)
     def analisaDirecaoValida(self):
         prim = self.prim_hexagono
         sec = self.sec_hexagono
@@ -160,8 +172,7 @@ class Tabuleiro:
         if r >= 0 and r < ROWS and c >= 0 and c < COLS:
             return True
 
-    # analisa se tem espaco pra empurrar (ou seja, se  nrnhuma peca vai ser empurrada para fora do tabuleiro)
-    # e chama a função de empurrar
+    # analisa se tem espaco pra empurrar (ou seja, se  nenhuma peca vai ser empurrada para fora do tabuleiro) e chama a função de empurrar
     def analisaEmpurraPecas(self):
 
         lin1, col1 = self.prim_hexagono.getPosicao()
@@ -193,7 +204,7 @@ class Tabuleiro:
             r = lin1
             for j in range(COLS):
                 c = col1 + j if col1 < col2 else col1 - j
-                if j % 2 == 0 and j > 0: # nas colunas de índice ímpar é precise decrementar 1 da linha para
+                if j % 2 == 0 and j > 0: # nas colunas de índice ímpar é preciso decrementar 1 da linha para
                     r -= 1               # continuar andando na diagonal para cima
                     
                 if self.verificaPosicao(r, c):
@@ -255,7 +266,6 @@ class Tabuleiro:
 
     # funcao recebe lista de peças e de posições analisadas em analisaEmpurraPecas() e empurra naquela direção
     def empurraPecas(self):
-
         pecas = self.pecas_p_empurrar
         pos = self.pos_p_empurrar
 
@@ -295,8 +305,7 @@ class Tabuleiro:
             for h in self.getHexagonosBorda(borda):
                 if h.verificaOcupado() and h.getPeca().getCor() == cor:
                     
-                    # inicializa matriz de casas visitada no tabuleiro
-                    # a ser preenchida durante a busca em profundidade
+                    # inicializa matriz de casas visitadas no tabuleiro a ser preenchida durante a busca em profundidade
                     tabuleiro = [
                         [ False, False, False, False, False ],
                         [ False, False, False, False, False ],
@@ -311,7 +320,11 @@ class Tabuleiro:
                         
                     if self.vitoria:
                         self.partidaEmAndamento = False
-                        print(cor, 'VENCEU')
+                        if cor == YELLOW:
+                            self.vencedor = "Amarelo"
+                        else:
+                            self.vencedor = "Preto"
+                        self.tocaSom('vitoria')
                         break
 
     def processaPrimeiroClique(self, hexagono):
@@ -319,20 +332,17 @@ class Tabuleiro:
             sucesso = self.inserirPeca(hexagono)
             self.verificaCondicaoDeVitoria()
             if not sucesso:
-                # armazena primeiro hexagono clicado e aguarda segundo click
-                self.prim_hexagono = hexagono
+                self.prim_hexagono = hexagono # armazena primeiro hexagono clicado e aguarda segundo click
             else:
                 self.tocaSom('jogadaExecutada')
         else:
             self.tocaSom('erro')
 
     def processaSegundoClique(self, hexagono):
-        # checar se o segundo hexagono esta na vizinhança imediata do primeiro                            
-        # isto configura um segundo click válido
+        # checar se o segundo hexagono esta na vizinhança imediata do primeiro (isto configura um segundo click válido)               
         # perde o click se o hexagono do segundo click nao for vizinho do primeiro
         if self.prim_hexagono.analisaEntorno(hexagono):
             self.sec_hexagono = hexagono
-            # ver se a diagonal escolhida é válida
             if self.analisaDirecaoValida():
                 # checar se a vertical/diagonal esta cheia p/ poder empurrar as peças
                 if self.analisaEmpurraPecas():
@@ -349,12 +359,6 @@ class Tabuleiro:
         self.prim_hexagono = None
         self.sec_hexagono = None
 
-    def desenhaPecasTabuleiro(self):
-        for i in range(ROWS):
-            for j in range(COLS):
-                p = self.matrizHexagonos[i][j].getPeca()
-                if p:    
-                    pygame.draw.circle(self.tela, p.cor, p.coord, p.radius)
 
 #--------------- MÉTODOS SISTEMA ----------------
 
@@ -398,8 +402,16 @@ class Tabuleiro:
 
             pygame.display.update()
 
+        self.encerrarSistema()
+
+    def encerrarSistema(self):
+        if self.vencedor:
+            self.escreveTela("Jogador {} Venceu o Jogo!".format(self.vencedor))
+        else:
+            self.escreveTela("  Jogo finalizado. Até a próxima!")
+        pygame.display.update()
+        pygame.time.wait(4000)
         pygame.quit()
 
-
 jogo = Tabuleiro()
-jogo.iniciarPartida()
+jogo.iniciarSistema()

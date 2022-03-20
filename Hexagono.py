@@ -24,9 +24,8 @@ class Hexagono:
     # setter
     def setPeca(self, peca):
         self.peca = peca
-# -------------------------------------------
 
-
+# ----------- Métodos Hexágono --------------
 
     def colocarPeca(self, jogador, direcao):
         pass
@@ -52,16 +51,6 @@ class Hexagono:
             if self.posicao[1] == COLS-1:
                 return True
             return False
-
-    # def verificaBordaInferior(self):
-    #     if self.posicao[0] == ROWS-1:
-    #         return True
-    #     return False
-
-    # def verificaBordaDireita(self):
-    #     if self.posicao[1] == COLS-1:
-    #         return True
-    #     return False
 
     # recebe um hexagoono e checa se ele esta na vizinhança imediata do tabuleiro
     def analisaEntorno(self, vizinho):
@@ -107,6 +96,3 @@ class Hexagono:
                 vizinhos.append((l-1, c-1))
 
         return vizinhos
-
-    def empurrarPecaDirecao(self, direcao):
-        pass

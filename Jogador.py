@@ -9,7 +9,7 @@ class Jogador:
         self.turno = turno
 
     # --------- Getters e Setters --------------
-    def getNome(self):
+    def getNome(self): # Amarelo ou preto
         return self.nome
       
     def getFlagCor(self):
@@ -28,10 +28,7 @@ class Jogador:
         self.turno = turno
 # ------------------------------------------- 
 
-
     def verificaTurno(self):
         return self.turno
 
-    def identificaJogador(self):
-        pass
     
