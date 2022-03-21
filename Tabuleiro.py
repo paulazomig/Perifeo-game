@@ -324,18 +324,18 @@ class Tabuleiro:
                     if self.vitoria:
                         self.partidaEmAndamento = False
                         if cor == YELLOW:
-                            self.vencedor = "Amarelo"
+                            self.vencedor = self.jogadores[0]
                         else:
-                            self.vencedor = "Preto"
+                            self.vencedor = self.jogadores[1]
                         break
 
     def processaPrimeiroClique(self, hexagono):
         if hexagono.analisaBorda(): # perde o click se o hexagono clicado nao estiver na borda
-            sucesso = self.inserirPeca(hexagono)
-            self.verificaCondicaoDeVitoria()
+            sucesso = self.inserirPeca(hexagono)   
             if not sucesso:
                 self.prim_hexagono = hexagono # armazena primeiro hexagono clicado e aguarda segundo click
             else:
+                self.verificaCondicaoDeVitoria()
                 self.tocaSom('jogadaExecutada')
         else:
             self.tocaSom('erro')
@@ -409,7 +409,7 @@ class Tabuleiro:
     def encerrarSistema(self):
         if self.vencedor:
             self.tocaSom('vitoria')
-            self.escreveTela("Jogador {} venceu o jogo!".format(self.vencedor))
+            self.escreveTela("Jogador {} venceu o jogo!".format(self.vencedor.getNome()))
         else:
             self.escreveTela("  Jogo finalizado. Até a próxima!")
         pygame.display.update()
